@@ -1,4 +1,4 @@
-module excel-extractor
+module github.com/Kavida/excelExtractor
 
 go 1.22.9
 

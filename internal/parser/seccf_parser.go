@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"fmt"
@@ -118,7 +118,7 @@ func add_checkbox() {
 	}
 }
 
-func read_form_controls() {
+func ReadFormControls() {
 	f, err := excelize.OpenFile("Example_2.xlsx")
 	if err != nil {
 		fmt.Println(err)

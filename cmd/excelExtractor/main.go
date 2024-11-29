@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -6,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/Kavida/excelExtractor/internal/parser"
 )
 
 // Response struct for structured output
@@ -28,6 +29,8 @@ func printErrorAndExit(response Response, code int) {
 }
 
 func main() {
+	parser.ReadFormControls()
+
 	// Check if arguments are provided
 	if len(os.Args) < 2 {
 		// Return error for missing arguments
