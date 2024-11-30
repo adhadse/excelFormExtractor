@@ -6,35 +6,28 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Kavida/excelExtractor/internal/parser"
+	"github.com/Kavida/excelExtractor/internal/extractor"
 )
 
-// Response struct for structured output
-type Response struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
-	Data    any    `json:"data,omitempty"`
-}
-
-func printSuccessAndExit(response Response) {
+func printSuccessAndExit(response extractor.Response) {
 	jsonResponse, _ := json.Marshal(response)
 	fmt.Println(string(jsonResponse))
 	os.Exit(0)
 }
 
-func printErrorAndExit(response Response, code int) {
+func printErrorAndExit(response extractor.Response, code int) {
 	jsonResponse, _ := json.Marshal(response)
 	fmt.Fprintln(os.Stderr, string(jsonResponse))
 	os.Exit(code)
 }
 
 func main() {
-	parser.ReadFormControls()
+	// extractor.ReadFormControls()
 
 	// Check if arguments are provided
 	if len(os.Args) < 2 {
 		// Return error for missing arguments
-		response := Response{
+		response := extractor.Response{
 			Status:  "error",
 			Message: "No arguments provided",
 		}
@@ -48,17 +41,58 @@ func main() {
 	switch command {
 	case "hello":
 		// Success case
-		response := Response{
+		response := extractor.Response{
 			Status:  "success",
 			Message: "Hello command executed successfully",
 			Data:    "Hello, World!",
 		}
 		printSuccessAndExit(response)
 
+	case "seccf":
+		// Check for required second argument
+		if len(os.Args) < 3 {
+			response := extractor.Response{
+				Status:  "error",
+				Message: "SCEEF excel requires path name parameter",
+			}
+			printErrorAndExit(response, 2)
+		}
+
+		input := os.Args[2]
+
+		seccf_extr, err := extractor.MakeSECCFExtractor(input)
+		if err != nil {
+			fmt.Printf("Failed to initialize extractor: %v\n", err)
+			return
+		}
+		defer seccf_extr.Close()
+
+		// // get merged cell value
+		// val, err := seccf_extr.GetMergedCellValue(extractor.CellRange{
+		// 	StartCell: "E19",
+		// 	EndCell:   "E19",
+		// }, "Section A - LMW Buyer details")
+
+		// if err != nil {
+		// 	fmt.Printf("Failed to retrieve cell value: %v\n", err)
+		// } else {
+		// 	fmt.Printf("MergedCellValue: %s\n", val)
+		// }
+
+		seccf_extr.Extract()
+		// seccf_extr.ReadFormControls()
+
+		// response := Response{
+		// 	Status:  "success",
+		// 	Message: "Processing completed",
+		// 	Data:    map[string]string{"processed": strings.ToUpper(input)},
+		// }
+		// printSuccessAndExit(response)
+
 	case "process":
 		// Check for required second argument
 		if len(os.Args) < 3 {
-			response := Response{
+			response := extractor.Response{
 				Status:  "error",
 				Message: "Process command requires a parameter",
 			}
@@ -69,7 +103,7 @@ func main() {
 		input := os.Args[2]
 		if strings.ToLower(input) == "fail" {
 			// Simulate a process failure
-			response := Response{
+			response := extractor.Response{
 				Status:  "error",
 				Message: "Process failed as requested",
 				Data:    map[string]string{"failed_input": input},
@@ -78,7 +112,7 @@ func main() {
 		}
 
 		// Success case with processed data
-		response := Response{
+		response := extractor.Response{
 			Status:  "success",
 			Message: "Processing completed",
 			Data:    map[string]string{"processed": strings.ToUpper(input)},
@@ -87,7 +121,7 @@ func main() {
 
 	default:
 		// Unknown command error
-		response := Response{
+		response := extractor.Response{
 			Status:  "error",
 			Message: fmt.Sprintf("Unknown command: %s", command),
 		}
