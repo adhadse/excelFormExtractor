@@ -12,18 +12,19 @@ import (
 
 // SearchCriteria defines what to look for and where
 type SearchCriteria struct {
-	SearchTerms           []string                  // Multiple possible terms to search for
-	CellRanges            []CellRange               // Multiple cell ranges to search in
-	DualColumnCheckBoxClf bool                      // check side by side column
-	DualColumnClfCritera  DualClassificationCritera // Add this to map checkbox text to values
+	SearchTerms           []string                   // Multiple possible terms to search for
+	CellRanges            []CellRange                // Multiple cell ranges to search in
+	DualColumnCheckBoxClf bool                       // check side by side column
+	DualColumnClfCriteria DualClassificationCriteria // Add this to map checkbox text to values
+	TriColumnCheckBoxClf  bool                       // check tri-side by side column
+	TriColumnClfCriteria  TriClassificationCritera   // Add this to map checkbox text to values
 	BoolCheckBox          bool
 	BoolClfCriteria       BoolClassificationCriteria
 	Offset                int // Default offset of value for simple fields
 }
 
 type ClassificationCriteria struct {
-	Label string
-	bool
+	Label       string
 	SearchTerms []string // search terms for extra check if form control has that name or not
 	Offset      int
 }
@@ -33,9 +34,15 @@ type BoolClassificationCriteria struct {
 	SearchTerms []string // search terms for extra check if form control has that name or not
 }
 
-type DualClassificationCritera struct {
+type DualClassificationCriteria struct {
 	TYPE_1 ClassificationCriteria
 	TYPE_2 ClassificationCriteria
+}
+
+type TriClassificationCritera struct {
+	TYPE_1 ClassificationCriteria
+	TYPE_2 ClassificationCriteria
+	TYPE_3 ClassificationCriteria
 }
 
 // CellRange represents an Excel cell range
@@ -57,8 +64,66 @@ type BuyerDetails struct {
 	Modified                        bool   `json:"modified"`
 }
 
+type ProductDetails struct {
+	// Sheet Metadata
+	SheetName string `json:"sheet_name"`
+
+	// Supplier Details
+	SupplierPartNumber    string `json:"supplier_part_number"`
+	SupplierCompanyName   string `json:"supplier_company_name"`
+	SupplierFullAddress   string `json:"supplier_full_address"`
+	SupplierCountry       string `json:"supplier_country"`
+	SupplierCompanyNumber string `json:"supplier_company_number"`
+
+	// Manufacturer Details
+	ManufacturerPartNumber    string `json:"manufacturer_part_number"`
+	ManufacturerCompanyName   string `json:"manufacturer_company_name"`
+	ManufacturerFullAddress   string `json:"manufacturer_full_address"`
+	ManufacturerCountry       string `json:"manufacturer_country"`
+	ManufacturerCompanyNumber string `json:"manufacturer_company_number"`
+
+	// Product Details
+	CountryOfOrigin                 string `json:"country_of_origin"`
+	CustomsTariffCode               string `json:"customs_tariff_code"`
+	ExportControlRegulated          string `json:"export_control_regulated"` // Yes/No
+	PartClassification              string `json:"part_classification"`      // DU, MIL, CIVIL
+	ControlListClassificationNumber string `json:"control_list_classification_number"`
+	ThirdCountryControlledContent   string `json:"third_country_controlled_content"` // Yes/No
+	EndUserStatementRequired        string `json:"end_user_statement_required"`      // Yes/No
+	ExportLicenceShipmentRequired   string `json:"export_licence_shipment_required"` // Yes/No
+	ExportLicenceEndUserRequired    string `json:"export_licence_end_user_required"` // Yes/No/End user not advised to supplier
+	AdditionalExportDocsRequired    string `json:"additional_export_docs_required"`  // Yes/No
+	// AdditionalShipmentRequirements  string `json:"additional_shipment_requirements"`
+
+	// Mandatory
+	TransferReexportConditions string `json:"transfer_reexport_conditions"`
+
+	// Supplier Representative
+	RepresentativeName      string `json:"representative_name"`
+	RepresentativePosition  string `json:"representative_position"`
+	RepresentativeCompany   string `json:"representative_company"`
+	RepresentativeSignature string `json:"representative_signature"` // Available/Not Available
+	SupplierCompanySeal     string `json:"supplier_company_seal"`    // Available/Not Available
+	SignatureDate           string `json:"signature_date"`           // Date format
+}
+
+// Generic interface for structures with SheetName
+type SheetNameGetter interface {
+	GetSheetName() string
+}
+
+// Add methods to both structs to implement SheetNameGetter
+func (b *BuyerDetails) GetSheetName() string {
+	return b.SheetName
+}
+
+func (p *ProductDetails) GetSheetName() string {
+	return p.SheetName
+}
+
 type SECCFExtraction struct {
-	BuyerDetails *BuyerDetails `json:"buyer_details"`
+	BuyerDetails   *BuyerDetails   `json:"buyer_details"`
+	ProductDetails *ProductDetails `json:"product_details"`
 	// add more extraction if possible
 }
 
@@ -73,44 +138,78 @@ type ExcelExtractor struct {
 
 // Add a method to handle value extraction based on criteria type
 type ValueExtractor interface {
-	Extract(e *ExcelExtractor, criteria SearchCriteria, cellRange CellRange) (interface{}, error)
+	Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error)
 }
 
 // Implement different extractors for different types of fields
 type SimpleValueExtractor struct{}
 type BoolCheckBoxExtractor struct{}
 type DualColumnClfExtractor struct{}
+type TriColumnClfExtractor struct{}
 
-func (s *SimpleValueExtractor) Extract(e *ExcelExtractor, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
+func (s *SimpleValueExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
 	adjacentRange := getAdjacentRange(cellRange, criteria.Offset)
-	return e.GetCellValue(adjacentRange, e.Extraction.BuyerDetails.SheetName)
+	return e.GetCellValue(adjacentRange, sheetName)
 }
 
-func (c *BoolCheckBoxExtractor) Extract(e *ExcelExtractor, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
+func (c *BoolCheckBoxExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
 	cell := getAdjacentRange(cellRange, criteria.BoolClfCriteria.Offset).StartCell
-	return e.isCheckBoxChecked(e.Extraction.BuyerDetails.SheetName, cell, criteria.BoolClfCriteria.SearchTerms)
+	return e.isCheckBoxChecked(sheetName, cell, criteria.BoolClfCriteria.SearchTerms)
 }
 
-func (d *DualColumnClfExtractor) Extract(e *ExcelExtractor, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
-	cellType1 := getAdjacentRange(cellRange, criteria.DualColumnClfCritera.TYPE_1.Offset).StartCell
-	cellType2 := getAdjacentRange(cellRange, criteria.DualColumnClfCritera.TYPE_2.Offset).StartCell
+func (d *DualColumnClfExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
+	cellType1 := getAdjacentRange(cellRange, criteria.DualColumnClfCriteria.TYPE_1.Offset).StartCell
+	cellType2 := getAdjacentRange(cellRange, criteria.DualColumnClfCriteria.TYPE_2.Offset).StartCell
 
-	isType1, err := e.isCheckBoxChecked(e.Extraction.BuyerDetails.SheetName, cellType1, criteria.DualColumnClfCritera.TYPE_1.SearchTerms)
+	isType1, err := e.isCheckBoxChecked(sheetName, cellType1, criteria.DualColumnClfCriteria.TYPE_1.SearchTerms)
 	if err != nil {
-		fmt.Printf("Error checking %s classification: %v\n", criteria.DualColumnClfCritera.TYPE_1.Label, err)
+		fmt.Printf("Error checking %s classification: %v\n", criteria.DualColumnClfCriteria.TYPE_1.Label, err)
 		return "", err
 	}
 
-	isType2, err := e.isCheckBoxChecked(e.Extraction.BuyerDetails.SheetName, cellType2, criteria.DualColumnClfCritera.TYPE_2.SearchTerms)
+	isType2, err := e.isCheckBoxChecked(sheetName, cellType2, criteria.DualColumnClfCriteria.TYPE_2.SearchTerms)
 	if err != nil {
-		fmt.Printf("Error checking %s classification: %v\n", criteria.DualColumnClfCritera.TYPE_2.Label, err)
+		fmt.Printf("Error checking %s classification: %v\n", criteria.DualColumnClfCriteria.TYPE_2.Label, err)
 		return "", err
 	}
 
 	if isType1 && !isType2 {
-		return criteria.DualColumnClfCritera.TYPE_1.Label, nil
+		return criteria.DualColumnClfCriteria.TYPE_1.Label, nil
 	} else if !isType1 && isType2 {
-		return criteria.DualColumnClfCritera.TYPE_2.Label, nil
+		return criteria.DualColumnClfCriteria.TYPE_2.Label, nil
+	}
+	return "", nil
+}
+
+func (d *TriColumnClfExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
+	cellType1 := getAdjacentRange(cellRange, criteria.TriColumnClfCriteria.TYPE_1.Offset).StartCell
+	cellType2 := getAdjacentRange(cellRange, criteria.TriColumnClfCriteria.TYPE_2.Offset).StartCell
+	cellType3 := getAdjacentRange(cellRange, criteria.TriColumnClfCriteria.TYPE_3.Offset).StartCell
+
+	isType1, err := e.isCheckBoxChecked(sheetName, cellType1, criteria.TriColumnClfCriteria.TYPE_1.SearchTerms)
+	if err != nil {
+		fmt.Printf("Error checking %s classification: %v\n", criteria.TriColumnClfCriteria.TYPE_1.Label, err)
+		return "", err
+	}
+
+	isType2, err := e.isCheckBoxChecked(sheetName, cellType2, criteria.TriColumnClfCriteria.TYPE_2.SearchTerms)
+	if err != nil {
+		fmt.Printf("Error checking %s classification: %v\n", criteria.TriColumnClfCriteria.TYPE_2.Label, err)
+		return "", err
+	}
+
+	isType3, err := e.isCheckBoxChecked(sheetName, cellType3, criteria.TriColumnClfCriteria.TYPE_3.SearchTerms)
+	if err != nil {
+		fmt.Printf("Error checking %s classification: %v\n", criteria.TriColumnClfCriteria.TYPE_3.Label, err)
+		return "", err
+	}
+
+	if isType1 && !isType2 && !isType3 {
+		return criteria.TriColumnClfCriteria.TYPE_1.Label, nil
+	} else if !isType1 && isType2 && !isType3 {
+		return criteria.TriColumnClfCriteria.TYPE_2.Label, nil
+	} else if !isType1 && !isType2 && isType3 {
+		return criteria.TriColumnClfCriteria.TYPE_3.Label, nil
 	}
 	return "", nil
 }
@@ -142,26 +241,25 @@ func MakeSECCFExtractor(filePath string) (*ExcelExtractor, error) {
 	}, nil
 }
 
-func (e *ExcelExtractor) searchSheetName(searchWord string) (bool, error) {
+func (e *ExcelExtractor) searchSheetName(searchWord string) (bool, string, error) {
 	sheetList := e.file.GetSheetList()
 
 	wordFound := false
+	foundSheetName := ""
 
-	for index, sheetName := range sheetList {
+	for _, sheetName := range sheetList {
 		// Convert both strings to lowercase for case-insensitive comparison
 		if strings.Contains(strings.ToLower(sheetName), strings.ToLower(searchWord)) {
-			fmt.Printf("Found '%s' in sheet name: '%s' at position %d\n", searchWord, sheetName, index+1)
-			e.Extraction.BuyerDetails = &BuyerDetails{
-				SheetName: sheetName,
-			}
+			// fmt.Printf("Found '%s' in sheet name: '%s' at position %d\n", searchWord, sheetName, index+1)
 			wordFound = true
+			foundSheetName = sheetName
 		}
 	}
 
 	if !wordFound {
-		return wordFound, SheetNotFoundError{searchWord: searchWord}
+		return wordFound, "", SheetNotFoundError{searchWord: searchWord}
 	}
-	return wordFound, nil
+	return wordFound, foundSheetName, nil
 }
 
 func (e *ExcelExtractor) GetCellValue(cellRange CellRange, sheetName string) (string, error) {
@@ -219,26 +317,31 @@ func getAdjacentRange(cellRange CellRange, offset int) CellRange {
 	}
 }
 
-func (e *ExcelExtractor) extractBuyerDetails(criteria map[string]SearchCriteria) {
-	buyerDetailsValue := reflect.ValueOf(e.Extraction.BuyerDetails).Elem()
+func (e *ExcelExtractor) extractDetails(details interface{}, sheetName string, criteria map[string]SearchCriteria) {
+	// Get the reflect.Value of the pointer to the struct
+	detailsValue := reflect.ValueOf(details).Elem()
 
 	for fieldName, searchCriteria := range criteria {
+		keyCellFound := false
 		for _, cellRange := range searchCriteria.CellRanges {
 			// Get 'KEY' cell from the potential label cell
-			value, err := e.GetCellValue(cellRange, e.Extraction.BuyerDetails.SheetName)
+			value, err := e.GetCellValue(cellRange, sheetName)
 			if err != nil {
 				fmt.Printf("Error trying to retrive cell value: %v\n", err)
 				return
 			}
 
-			// Check if the value matches any of our search terms
+			// Check if the 'KEY' Cell value matches any of our search terms
 			for _, searchTerm := range searchCriteria.SearchTerms {
-				if strings.Contains(utils.RemoveExtraSpaces(strings.ToLower(value)), strings.ToLower(searchTerm)) {
+				if strings.Contains(utils.RemoveExtraSpaces(strings.ToLower(value)), utils.RemoveExtraSpaces(strings.ToLower(searchTerm))) {
+					keyCellFound = true
 					var extractor ValueExtractor
 
 					// Select appropriate extractor based on criteria type
 					if searchCriteria.DualColumnCheckBoxClf {
 						extractor = &DualColumnClfExtractor{}
+					} else if searchCriteria.TriColumnCheckBoxClf {
+						extractor = &TriColumnClfExtractor{}
 					} else if searchCriteria.BoolCheckBox {
 						extractor = &BoolCheckBoxExtractor{}
 					} else {
@@ -246,14 +349,14 @@ func (e *ExcelExtractor) extractBuyerDetails(criteria map[string]SearchCriteria)
 					}
 
 					// Extract the value
-					extractedValue, err := extractor.Extract(e, searchCriteria, cellRange)
+					extractedValue, err := extractor.Extract(e, sheetName, searchCriteria, cellRange)
 					if err != nil {
 						fmt.Println("error extracting value: %w", err)
 						return
 					}
 
 					// Set the field using reflection
-					field := buyerDetailsValue.FieldByName(fieldName)
+					field := detailsValue.FieldByName(fieldName)
 					if field.IsValid() && field.CanSet() {
 						setValue(field, extractedValue)
 					} else {
@@ -264,18 +367,23 @@ func (e *ExcelExtractor) extractBuyerDetails(criteria map[string]SearchCriteria)
 				}
 			}
 		}
+		if !keyCellFound {
+			fmt.Printf("Field %s not found in excel\n", fieldName)
+		}
 	}
 }
 
 func (e *ExcelExtractor) ReadFormControls() {
-	formControls, err := e.file.GetFormControls(e.Extraction.BuyerDetails.SheetName) // sheet name
+	sheetName := e.Extraction.ProductDetails.SheetName
+	formControls, err := e.file.GetFormControls(sheetName) // sheet name
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	for _, control := range formControls {
-		fmt.Printf("Control Cell %s, Control checked: %v, control.Paragraph %v, control.CurrentVal %v, cellLink: %s, offsetX: %v, offsetY: %v, Control cell text: %s\n", control.Cell, control.Checked, control.Paragraph, control.CurrentVal, control.CellLink, control.Format.OffsetX, control.Format.OffsetY, control.Text)
+		fmt.Printf("[%s] Control Cell %s, Control checked: %v, control.Paragraph %v, control.CurrentVal %v, cellLink: %s, offsetX: %v, offsetY: %v, Control cell text: %s\n", sheetName, control.Cell, control.Checked, control.Paragraph, control.CurrentVal, control.CellLink, control.Format.OffsetX, control.Format.OffsetY, control.Text)
+
 		// if control.Type == excelize.FormControlCheckBox {
 		// }
 	}
@@ -293,7 +401,7 @@ func (e *ExcelExtractor) isCheckBoxChecked(sheetName string, cell string, classi
 				for _, text := range classificationTexts {
 					for _, paraText := range control.Paragraph {
 						if strings.EqualFold(paraText.Text, text) {
-							fmt.Printf("Control Cell %s, Control checked: %v Control cell text: %s, cell %s\n", control.Cell, control.Checked, control.Text, cell)
+							// fmt.Printf("[%s] Control Cell %s, Control checked: %v control.Paragraph %v, Control cell text: %s, cell %s\n", sheetName, control.Cell, control.Checked, control.Paragraph, control.Text, cell)
 							return control.Checked, nil
 						}
 					}
@@ -304,10 +412,10 @@ func (e *ExcelExtractor) isCheckBoxChecked(sheetName string, cell string, classi
 	return false, nil
 }
 
-func (e *ExcelExtractor) Extract() {
-	_, err := e.searchSheetName("buyer details")
+func (e *ExcelExtractor) Extract() SECCFExtraction {
+	_, buyerSheetName, err := e.searchSheetName("buyer details")
 
-	criteria := map[string]SearchCriteria{
+	buyerDetailsCriteria := map[string]SearchCriteria{
 		"PartNumber": {
 			SearchTerms: []string{"part number", "part-nr", "part_number"},
 			CellRanges: []CellRange{
@@ -386,7 +494,7 @@ func (e *ExcelExtractor) Extract() {
 				{StartCell: "B15", EndCell: "D15"},
 			},
 			DualColumnCheckBoxClf: true,
-			DualColumnClfCritera: DualClassificationCritera{
+			DualColumnClfCriteria: DualClassificationCriteria{
 				TYPE_1: ClassificationCriteria{
 					Label:       "DUAL",
 					SearchTerms: []string{"Dual", "DU"},
@@ -404,15 +512,316 @@ func (e *ExcelExtractor) Extract() {
 	if err != nil {
 		fmt.Println("%w", err)
 	} else {
-		e.extractBuyerDetails(criteria)
+		e.Extraction.BuyerDetails = &BuyerDetails{
+			SheetName: buyerSheetName,
+		}
+		e.extractDetails(e.Extraction.BuyerDetails, buyerSheetName, buyerDetailsCriteria)
+	}
+
+	_, productSheetName, err_product_sheet_search := e.searchSheetName("product details")
+
+	productDetailsCriteria := map[string]SearchCriteria{
+		"SupplierPartNumber": {
+			SearchTerms: []string{"Supplier part number"},
+			CellRanges: []CellRange{
+				{StartCell: "C11", EndCell: "D11"},
+			},
+			Offset: 2,
+		},
+		"SupplierCompanyName": {
+			SearchTerms: []string{"company name"},
+			CellRanges: []CellRange{
+				{StartCell: "C12", EndCell: "C12"},
+			},
+			Offset: 1,
+		},
+		"SupplierFullAddress": {
+			SearchTerms: []string{"full address"},
+			CellRanges: []CellRange{
+				{StartCell: "C13", EndCell: "C13"},
+			},
+			Offset: 1,
+		},
+		"SupplierCountry": {
+			SearchTerms: []string{"Country"},
+			CellRanges: []CellRange{
+				{StartCell: "C14", EndCell: "C14"},
+			},
+			Offset: 1,
+		},
+		"SupplierCompanyNumber": {
+			SearchTerms: []string{"company number"},
+			CellRanges: []CellRange{
+				{StartCell: "C15", EndCell: "C15"},
+			},
+			Offset: 1,
+		},
+		"ManufacturerPartNumber": {
+			SearchTerms: []string{"manufacturer part number"},
+			CellRanges: []CellRange{
+				{StartCell: "C16", EndCell: "C116"},
+			},
+			Offset: 2,
+		},
+		"ManufacturerCompanyName": {
+			SearchTerms: []string{"company name"},
+			CellRanges: []CellRange{
+				{StartCell: "C17", EndCell: "C17"},
+			},
+			Offset: 1,
+		},
+		"ManufacturerFullAddress": {
+			SearchTerms: []string{"full address"},
+			CellRanges: []CellRange{
+				{StartCell: "C18", EndCell: "C18"},
+			},
+			Offset: 1,
+		},
+		"ManufacturerCountry": {
+			SearchTerms: []string{"Country"},
+			CellRanges: []CellRange{
+				{StartCell: "C19", EndCell: "C19"},
+			},
+			Offset: 1,
+		},
+		"ManufacturerCompanyNumber": {
+			SearchTerms: []string{"company number"},
+			CellRanges: []CellRange{
+				{StartCell: "C20", EndCell: "C20"},
+			},
+			Offset: 1,
+		},
+		"CountryOfOrigin": {
+			SearchTerms: []string{"country of origin"},
+			CellRanges: []CellRange{
+				{StartCell: "B21", EndCell: "D21"},
+			},
+			Offset: 3,
+		},
+		"CustomsTariffCode": {
+			SearchTerms: []string{"customs tariff code"},
+			CellRanges: []CellRange{
+				{StartCell: "B22", EndCell: "D22"},
+			},
+			Offset: 3,
+		},
+		"ExportControlRegulated": {
+			SearchTerms: []string{"export control regulations"},
+			CellRanges: []CellRange{
+				{StartCell: "B23", EndCell: "D23"},
+			},
+			DualColumnCheckBoxClf: true,
+			DualColumnClfCriteria: DualClassificationCriteria{
+				TYPE_1: ClassificationCriteria{
+					Label:       "YES",
+					SearchTerms: []string{"YES"},
+					Offset:      3,
+				},
+				TYPE_2: ClassificationCriteria{
+					Label:       "NO",
+					SearchTerms: []string{"No"},
+					Offset:      4,
+				},
+			},
+		},
+		"PartClassification": {
+			SearchTerms: []string{"classification of the part"},
+			CellRanges: []CellRange{
+				{StartCell: "B24", EndCell: "D24"},
+			},
+			TriColumnCheckBoxClf: true,
+			TriColumnClfCriteria: TriClassificationCritera{
+				TYPE_1: ClassificationCriteria{
+					Label:       "DUAL",
+					SearchTerms: []string{"DU", "DUAL"},
+					Offset:      3,
+				},
+				TYPE_2: ClassificationCriteria{
+					Label:       "MILITARY",
+					SearchTerms: []string{"MIL"},
+					Offset:      3,
+				},
+				TYPE_3: ClassificationCriteria{
+					Label:       "CIVIL",
+					SearchTerms: []string{"CIVIL"},
+					Offset:      5,
+				},
+			},
+		},
+		"ControlListClassificationNumber": {
+			SearchTerms: []string{"control list classification number"},
+			CellRanges: []CellRange{
+				{StartCell: "B28", EndCell: "D28"},
+			},
+			Offset: 3,
+		},
+		"ThirdCountryControlledContent": {
+			SearchTerms: []string{"third country controlled content"},
+			CellRanges: []CellRange{
+				{StartCell: "B29", EndCell: "D29"},
+			},
+			DualColumnCheckBoxClf: true,
+			DualColumnClfCriteria: DualClassificationCriteria{
+				TYPE_1: ClassificationCriteria{
+					Label:       "YES",
+					SearchTerms: []string{"YES"},
+					Offset:      3,
+				},
+				TYPE_2: ClassificationCriteria{
+					Label:       "NO",
+					SearchTerms: []string{"No"},
+					Offset:      4,
+				},
+			},
+		},
+		"EndUserStatementRequired": {
+			SearchTerms: []string{"end user statement will be required"},
+			CellRanges: []CellRange{
+				{StartCell: "B31", EndCell: "E31"},
+			},
+			DualColumnCheckBoxClf: true,
+			DualColumnClfCriteria: DualClassificationCriteria{
+				TYPE_1: ClassificationCriteria{
+					Label:       "YES",
+					SearchTerms: []string{"YES"},
+					Offset:      3,
+				},
+				TYPE_2: ClassificationCriteria{
+					Label:       "NO",
+					SearchTerms: []string{"No"},
+					Offset:      4,
+				},
+			},
+		},
+		"ExportLicenceShipmentRequired": {
+			SearchTerms: []string{"Export Licence for shipment to Leonardo MW Ltd", "Export Licence for shipment to Leonardo UK Ltd"},
+			CellRanges: []CellRange{
+				{StartCell: "B32", EndCell: "E32"},
+			},
+			DualColumnCheckBoxClf: true,
+			DualColumnClfCriteria: DualClassificationCriteria{
+				TYPE_1: ClassificationCriteria{
+					Label:       "YES",
+					SearchTerms: []string{"YES"},
+					Offset:      3,
+				},
+				TYPE_2: ClassificationCriteria{
+					Label:       "NO",
+					SearchTerms: []string{"No"},
+					Offset:      4,
+				},
+			},
+		},
+		"ExportLicenceEndUserRequired": {
+			SearchTerms: []string{"Export Licence for shipment to Leonardo MW Ltd Specified End User", "Export Licence for shipment to Leonardo UK Ltd Specified End User"},
+			CellRanges: []CellRange{
+				{StartCell: "B33", EndCell: "E33"},
+			},
+			TriColumnCheckBoxClf: true,
+			TriColumnClfCriteria: TriClassificationCritera{
+				TYPE_1: ClassificationCriteria{
+					Label:       "YES",
+					SearchTerms: []string{"YES"},
+					Offset:      3,
+				},
+				TYPE_2: ClassificationCriteria{
+					Label:       "NO",
+					SearchTerms: []string{"NO"},
+					Offset:      3,
+				},
+				TYPE_3: ClassificationCriteria{
+					Label:       "END USER NOT ADVISED TO SUPPLIER",
+					SearchTerms: []string{"END USER NOT ADVISED TO SUPPLIER"},
+					Offset:      5,
+				},
+			},
+		},
+		"AdditionalExportDocsRequired": {
+			SearchTerms: []string{"Are other export documents required to be completed by"},
+			CellRanges: []CellRange{
+				{StartCell: "B34", EndCell: "E34"},
+			},
+			DualColumnCheckBoxClf: true,
+			DualColumnClfCriteria: DualClassificationCriteria{
+				TYPE_1: ClassificationCriteria{
+					Label:       "YES",
+					SearchTerms: []string{"YES"},
+					Offset:      3,
+				},
+				TYPE_2: ClassificationCriteria{
+					Label:       "NO",
+					SearchTerms: []string{"No"},
+					Offset:      4,
+				},
+			},
+		},
+		"TransferReexportConditions": {
+			SearchTerms: []string{"additional is required to allow the product to be shipped"},
+			CellRanges: []CellRange{
+				{StartCell: "B35", EndCell: "E35"},
+				{StartCell: "B36", EndCell: "E36"},
+			},
+			Offset: 4,
+		},
+		"RepresentativeName": {
+			SearchTerms: []string{"name"},
+			CellRanges: []CellRange{
+				{StartCell: "B49", EndCell: "D49"},
+				{StartCell: "B50", EndCell: "D50"},
+			},
+			Offset: 3,
+		},
+		"RepresentativePosition": {
+			SearchTerms: []string{"position in the company"},
+			CellRanges: []CellRange{
+				{StartCell: "B50", EndCell: "D50"},
+				{StartCell: "B51", EndCell: "D51"},
+			},
+			Offset: 3,
+		},
+		"RepresentativeSignature": {
+			SearchTerms: []string{"Signature of Supplier"},
+			CellRanges: []CellRange{
+				{StartCell: "B51", EndCell: "D51"},
+				{StartCell: "B52", EndCell: "D52"},
+			},
+			Offset: 3,
+		},
+		"SupplierCompanySeal": {
+			SearchTerms: []string{"SUPPLIER COMPANY SEAL", "company name"},
+			CellRanges: []CellRange{
+				{StartCell: "B52", EndCell: "D52"},
+				{StartCell: "B53", EndCell: "D53"},
+			},
+			Offset: 3,
+		},
+		"SignatureDate": {
+			SearchTerms: []string{"DATE", "(day/month/year)"},
+			CellRanges: []CellRange{
+				{StartCell: "B53", EndCell: "D53"},
+				{StartCell: "B54", EndCell: "D54"},
+			},
+			Offset: 3,
+		},
+	}
+
+	if err_product_sheet_search != nil {
+		fmt.Println("%w", err_product_sheet_search)
+	} else {
+		e.Extraction.ProductDetails = &ProductDetails{
+			SheetName: productSheetName,
+		}
+		e.extractDetails(e.Extraction.ProductDetails, productSheetName, productDetailsCriteria)
+
 	}
 
 	jsonBytes, err := json.Marshal(e.Extraction)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return
+		return *e.Extraction
 	}
-	fmt.Printf("Extraction with nil BuyerDetails: %s \n", string(jsonBytes))
+	fmt.Printf("Extraction with: %s \n", string(jsonBytes))
+	return *e.Extraction
 }
 
 func (e *ExcelExtractor) Close() error {
