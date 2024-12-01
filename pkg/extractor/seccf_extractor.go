@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/Kavida/excelExtractor/internal/utils"
+	"github.com/adhadse/excelFormExtractor/pkg/utils"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -55,7 +55,7 @@ type BuyerDetails struct {
 	SheetName                       string `json:"sheet_name"`
 	PartNumber                      string `json:"part_number"`
 	PartDescription                 string `json:"part_description"`
-	LeonardoClassificationOfItem    string `json:"leonardo_classification_of_item"`
+	ClassificationOfItem            string `json:"classification_of_item"`
 	ControlListClassificationNumber string `json:"control_list_classification_number"`
 	RFQ                             string `json:"rfq"`
 	BuildToPrint                    bool   `json:"build_to_print"`
@@ -128,8 +128,9 @@ type SECCFExtraction struct {
 }
 
 type ExcelExtractor struct {
-	file       *excelize.File
-	Extraction *SECCFExtraction
+	file         *excelize.File
+	companyNames []string
+	Extraction   *SECCFExtraction
 }
 
 // //////////////////////////
@@ -229,15 +230,30 @@ func setValue(field reflect.Value, value interface{}) {
 	}
 }
 
-func MakeSECCFExtractor(filePath string) (*ExcelExtractor, error) {
+func (e *ExcelExtractor) ReplaceCompanyNames(items []string) []string {
+	var results []string
+
+	// Replace each company name in the string
+	for _, companyName := range e.companyNames {
+		for _, item := range items {
+			/// Replace the placeholder with the company name
+			replaced := strings.ReplaceAll(item, "{companyName}", companyName)
+			results = append(results, replaced)
+		}
+	}
+	return results
+}
+
+func MakeSECCFExtractor(filePath string, companyNames CompanyNameList) (*ExcelExtractor, error) {
 	f, err := excelize.OpenFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open Excel file: %w", err)
 	}
 
 	return &ExcelExtractor{
-		file:       f,
-		Extraction: &SECCFExtraction{},
+		file:         f,
+		companyNames: companyNames,
+		Extraction:   &SECCFExtraction{},
 	}, nil
 }
 
@@ -488,8 +504,8 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 				SearchTerms: []string{"YES"},
 			},
 		},
-		"LeonardoClassificationOfItem": {
-			SearchTerms: []string{"Leonardo Classification of item"},
+		"ClassificationOfItem": {
+			SearchTerms: e.ReplaceCompanyNames([]string{"{companyName} Classification of item"}),
 			CellRanges: []CellRange{
 				{StartCell: "B15", EndCell: "D15"},
 			},
@@ -694,7 +710,7 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 			},
 		},
 		"ExportLicenceShipmentRequired": {
-			SearchTerms: []string{"Export Licence for shipment to Leonardo MW Ltd", "Export Licence for shipment to Leonardo UK Ltd"},
+			SearchTerms: e.ReplaceCompanyNames([]string{"Export Licence for shipment to {companyName}"}),
 			CellRanges: []CellRange{
 				{StartCell: "B32", EndCell: "E32"},
 			},
@@ -713,7 +729,7 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 			},
 		},
 		"ExportLicenceEndUserRequired": {
-			SearchTerms: []string{"Export Licence for shipment to Leonardo MW Ltd Specified End User", "Export Licence for shipment to Leonardo UK Ltd Specified End User"},
+			SearchTerms: e.ReplaceCompanyNames([]string{"Export Licence for shipment to {companyName} Specified End User"}),
 			CellRanges: []CellRange{
 				{StartCell: "B33", EndCell: "E33"},
 			},

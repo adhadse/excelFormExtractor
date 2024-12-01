@@ -1,3 +1,5 @@
+github.com/go-python/gopy v0.4.10 h1:Ec3x+NTSzLsw9f6FTdDLwQCQlmlNmJIu4J6nSnyugqE=
+github.com/go-python/gopy v0.4.10/go.mod h1:zMV/gSSYa9u/8Zp0WYR+L/z+kOIqIUtMg/a1/GRy5uw=
 github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 h1:RWengNIwukTxcDr9M+97sNutRR1RKhG96O6jWumTTnw=
 github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826/go.mod h1:TaXosZuwdSHYgviHp1DAtfrULt5eUgsSMsZf+YrPgl8=
 github.com/richardlehane/mscfb v1.0.4 h1:WULscsljNPConisD5hR0+OyZjwK46Pfyr6mPu5ZawpM=

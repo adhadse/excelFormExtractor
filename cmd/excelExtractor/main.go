@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Kavida/excelExtractor/internal/extractor"
+	"github.com/adhadse/excelFormExtractor/pkg/extractor"
 )
 
 func printSuccessAndExit(response extractor.Response) {
@@ -60,7 +60,7 @@ func main() {
 
 		input := os.Args[2]
 
-		seccf_extr, err := extractor.MakeSECCFExtractor(input)
+		seccf_extr, err := extractor.MakeSECCFExtractor(input, []string{"Leonardo", "Leonardo UK Ltd", "Leonardo MW Ltd"})
 		if err != nil {
 			fmt.Printf("Failed to initialize extractor: %v\n", err)
 			return

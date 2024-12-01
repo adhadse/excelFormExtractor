@@ -1,0 +1,41 @@
+name: Build & Deploy
+on:
+  push:
+    tags:
+      - v*
+env:
+  PY_COLORS: "1"
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  build:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    # job_id: deploy-to-pypi
+    name: Deploy Excel form extractor to PyPi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.9" # The Go version to download (if necessary) and use.
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: install Pybindgen & wheel
+        run: pip3 install pybindgen wheel
+      - name: Build Python module
+        run: gopy build --output=py_excel_form_extractor -vm=python3 ./pkg/*
+      - name: Creating installable .whl file using the setup.py
+        run: |
+          PACKAGE_VERSION=${{ env.RELEASE_VERSION }} python3 setup.py bdist_wheel
+      - name: Release to pypi
+        run: |
+          twine upload dist/*
