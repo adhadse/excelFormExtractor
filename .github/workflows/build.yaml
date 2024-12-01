@@ -8,72 +8,66 @@ env:
   GOTRACEBACK: crash
   GO111MODULE: auto
 
-permissions:
-  contents: read
-  checks: write
-  id-token: write
-
 jobs:
-  build:
-    # job_id: deploy-to-pypi
-    name: Deploy Excel form extractor to PyPi
-    runs-on: ubuntu-latest
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Set tag name as environment variable
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-      - name: Cache-Go
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod              # Module download cache
-            ~/.cache/go-build         # Build cache (Linux)
-            ~/Library/Caches/go-build # Build cache (Mac)
-            '%LocalAppData%\go-build' # Build cache (Windows)
 
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.16.2
+
       - name: setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22.9" # The Go version to download (if necessary) and use.
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-          # cache: "pip"
-      - name: install Pybindgen & wheel & setuptools
-        run: pip3 install pybindgen setuptools wheel
-      - name: Download Go dependencies
-        run: |
-          go mod download
-          go mod verify
+          go-version: "1.22.9"
+
       - name: install gopy
         run: go install github.com/go-python/gopy@v0.4.10
+
       - name: install goimports
         run: go install golang.org/x/tools/cmd/goimports@latest
-      - name: Delete older files (if any)
-        run: |
-          rm -rf ./dist/ ./py_excel_form_extractor ./py_excel_form_extractor.egg-info
-      - name: Build Python module
-        run: gopy build --output=py_excel_form_extractor -vm=python3 ./pkg/*
-      - name: Creating installable .whl file using the setup.py
-        run: |
-          PACKAGE_VERSION=${{ env.RELEASE_VERSION }} python3 setup.py bdist_wheel
 
-      # test import locally
-      - name: Install wheel locally
-        run: pip install dist/*.whl
-      - name: List wheel contents
-        run: |
-          pip show py_excel_form_extractor
-          pip show -f py_excel_form_extractor
-      - name: Test import
-        run: |
-          python3 -c "from py_excel_form_extractor import extractor; print('Import successful')"
+      - name: Build wheels
+        env:
+          CIBW_BUILD: cp${{ matrix.python-version }}*
+          CIBW_ARCHS: "auto64"
+          CIBW_BEFORE_BUILD: |
+            go mod download
+            go mod verify
+            rm -rf ./py_excel_form_extractor ./py_excel_form_extractor.egg-info
+            gopy build --output=py_excel_form_extractor -vm=python3 ./pkg/*
+          PACKAGE_VERSION: ${{ env.RELEASE_VERSION }}
+        run: python -m cibuildwheel --output-dir wheelhouse
 
-      # Publish
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+
+  publish:
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
