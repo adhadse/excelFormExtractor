@@ -18,6 +18,13 @@ setuptools.setup(
     platforms="Linux, Mac OS X",
     keywords=["go", "golang", "python", "excel", "xlsx", "form", "extractor"],
     py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
-    package_data={"py_excel_form_extractor": ["*.so"]},
+    package_data={"py_excel_form_extractor": [
+        "*.so",
+        "*_go.py",
+        "*.py",
+        "_*.py",
+        "*.h",
+        "*.c",
+    ]},
     include_package_data=True,
 )

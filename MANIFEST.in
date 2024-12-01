@@ -1,0 +1,5 @@
+include py_excel_form_extractor/*.so
+include py_excel_form_extractor/*.py
+include py_excel_form_extractor/_*.py
+include py_excel_form_extractor/*.h
+include py_excel_form_extractor/*.c
