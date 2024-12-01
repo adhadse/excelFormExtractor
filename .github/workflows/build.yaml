@@ -13,7 +13,6 @@ permissions:
 
 jobs:
   build:
-    if: ${{ github.ref == 'refs/heads/master' }}
     # job_id: deploy-to-pypi
     name: Deploy Excel form extractor to PyPi
     runs-on: ubuntu-latest
