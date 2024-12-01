@@ -9,7 +9,6 @@ env:
 permissions:
   contents: read
   checks: write
-  pull-requests: write
   id-token: write
 
 jobs:
@@ -36,6 +35,8 @@ jobs:
       - name: Creating installable .whl file using the setup.py
         run: |
           PACKAGE_VERSION=${{ env.RELEASE_VERSION }} python3 setup.py bdist_wheel
-      - name: Release to pypi
-        run: |
-          twine upload dist/*
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}

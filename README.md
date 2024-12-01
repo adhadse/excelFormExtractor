@@ -25,7 +25,7 @@ go build -o gobinary ./cmd/excelExtractor
 
 2. Running the program without building the binary
 ```bash
-❯ go build -o ./bin/excel-extrator ./cmd/excelExtractor/main.go
+go build -o ./bin/excel-extrator ./cmd/excelFormExtractor/main.go
 ```
 3. Run the binary:
 ```bash

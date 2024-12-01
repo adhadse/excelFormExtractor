@@ -9,7 +9,7 @@ version = version.lstrip('v')
 setuptools.setup(
     name="py_excel_form_extractor",
     version=version,
-    url="https://github.com/adhadse/excel-form-extractor",
+    url="https://github.com/adhadse/excelFormExtractor",
     author="Anurag Dhadse",
     description="Extract excel form content into structured data.",
     packages=setuptools.find_packages(include=["py_excel_form_extractor"]),
