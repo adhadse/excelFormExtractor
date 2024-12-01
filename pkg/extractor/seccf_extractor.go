@@ -23,6 +23,12 @@ type SearchCriteria struct {
 	Offset                int // Default offset of value for simple fields
 }
 
+type ColumnMapping struct {
+	FieldName   string
+	SearchTerms []string
+	FoundColumn string // Will store the actual column letter once found
+}
+
 type ClassificationCriteria struct {
 	Label       string
 	SearchTerms []string // search terms for extra check if form control has that name or not
@@ -107,6 +113,23 @@ type ProductDetails struct {
 	SignatureDate           string `json:"signature_date"`           // Date format
 }
 
+type ControlCotent struct {
+	SheetName                       string `json:"sheet_name"`
+	ItemNum                         string `json:"item_num"`
+	PartNumber                      string `json:"part_number"`
+	ComponentManufacturerPartNumber string `json:"component_manufacturer_part_number"`
+	PartDescription                 string `json:"part_description"`
+	ManufacturerOfComponent         string `json:"manufacturer_of_component"`
+	ExportRegulationCountry         string `json:"export_regulation_country"`
+	DualControlListClfNum           string `json:"dual_control_list_clf_num"`
+	MilitaryControlListClfNum       string `json:"military_control_list_clf_num"`
+	IndicateLicenseApplication      string `json:"inidcate_license_application"`
+	TopLevelDeliverableItem         string `json:"top_level_delierable_item"`
+	USML_N                          string `json:"usml_n"`
+	ECCN_N                          string `json:"eccn_n"`
+	US_EA_CONTENT_RATIO             string `json:"us_ea_content_ratio"`
+}
+
 // Generic interface for structures with SheetName
 type SheetNameGetter interface {
 	GetSheetName() string
@@ -122,8 +145,9 @@ func (p *ProductDetails) GetSheetName() string {
 }
 
 type SECCFExtraction struct {
-	BuyerDetails   *BuyerDetails   `json:"buyer_details"`
-	ProductDetails *ProductDetails `json:"product_details"`
+	BuyerDetails      *BuyerDetails   `json:"buyer_details"`
+	ProductDetails    *ProductDetails `json:"product_details"`
+	ControlledContent []ControlCotent `json:"controlled_content"`
 	// add more extraction if possible
 }
 
@@ -331,6 +355,117 @@ func getAdjacentRange(cellRange CellRange, offset int) CellRange {
 		StartCell: newStartCol + strings.Join(startRow, ""),
 		EndCell:   newEndCol + strings.Join(endRow, ""),
 	}
+}
+
+func (e *ExcelExtractor) ToJson() string {
+	jsonBytes, err := json.Marshal(e.Extraction)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return string("{}")
+	}
+	return string(jsonBytes)
+}
+
+func (e *ExcelExtractor) findHeaderRow(sheetName string, columnMappings []ColumnMapping) (int, error) {
+	// Look for headers between rows 10-12
+	for row := 10; row <= 12; row++ {
+		// Check if this row contains known headers
+		for _, mapping := range columnMappings {
+			for _, term := range mapping.SearchTerms {
+				value, _ := e.file.GetCellValue(sheetName, fmt.Sprintf("A%d", row))
+				if strings.Contains(strings.ToLower(value), strings.ToLower(term)) {
+					return row, nil
+				}
+			}
+		}
+	}
+	return 11, fmt.Errorf("header row not found")
+}
+
+func (e *ExcelExtractor) findColumnByHeader(sheetName string, headerRow int, searchTerms []string) (string, error) {
+	// Get all cells in the header row
+	cols, err := e.file.GetCols(sheetName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	// Look through each column
+	for colIdx, col := range cols {
+		if len(col) >= headerRow {
+			headerCell := utils.RemoveExtraSpaces(strings.TrimSpace(strings.ToLower(col[headerRow-1])))
+			// Check if any search term matches
+			for _, term := range searchTerms {
+				termLower := utils.RemoveExtraSpaces(strings.ToLower(term))
+				if strings.Contains(headerCell, termLower) {
+					// Convert column index to letter (0 = A, 1 = B, etc.)
+					colName, err := excelize.ColumnNumberToName(colIdx + 1)
+					fmt.Println("Found colName:", colName, "for term:", term, "headerCell: ", headerCell)
+					if err != nil {
+						return "", err
+					}
+					return colName, nil
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("column not found for search terms: %v", searchTerms)
+}
+
+func (e *ExcelExtractor) extractControlledContent(sheetName string, columnMappings []ColumnMapping) []ControlCotent {
+	var contents []ControlCotent
+
+	// Find the header row (assuming it's around row 10-12)
+	// headerRow := 11 // You might want to make this dynamic too
+	headerRow, _ := e.findHeaderRow(sheetName, columnMappings) // default to 11
+
+	// Find actual columns for each mapping
+	for i := range columnMappings {
+		col, err := e.findColumnByHeader(sheetName, headerRow, columnMappings[i].SearchTerms)
+		if err != nil {
+			fmt.Printf("Warning: Could not find column for %s: %v\n", columnMappings[i].FieldName, err)
+			continue
+		}
+		columnMappings[i].FoundColumn = col
+	}
+
+	// Start from the row after header
+	row := headerRow + 1
+	for {
+		// Check if row is empty (using first column as indicator)
+		if len(columnMappings) == 0 || columnMappings[0].FoundColumn == "" {
+			break
+		}
+
+		firstCellValue, _ := e.file.GetCellValue(sheetName, fmt.Sprintf("%s%d", columnMappings[0].FoundColumn, row))
+		if firstCellValue == "" {
+			break
+		}
+
+		content := ControlCotent{
+			SheetName: sheetName,
+		}
+
+		// Use reflection to set fields dynamically
+		contentValue := reflect.ValueOf(&content).Elem()
+
+		for _, mapping := range columnMappings {
+			if mapping.FoundColumn == "" {
+				continue
+			}
+
+			cellValue, _ := e.file.GetCellValue(sheetName, fmt.Sprintf("%s%d", mapping.FoundColumn, row))
+			field := contentValue.FieldByName(mapping.FieldName)
+
+			if field.IsValid() && field.CanSet() {
+				field.SetString(strings.TrimSpace(cellValue))
+			}
+		}
+
+		contents = append(contents, content)
+		row++
+	}
+
+	return contents
 }
 
 func (e *ExcelExtractor) extractDetails(details interface{}, sheetName string, criteria map[string]SearchCriteria) {
@@ -828,7 +963,70 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 			SheetName: productSheetName,
 		}
 		e.extractDetails(e.Extraction.ProductDetails, productSheetName, productDetailsCriteria)
+	}
 
+	// Define column mappings with search terms
+	columnMappings := []ColumnMapping{
+		{
+			FieldName:   "ItemNum",
+			SearchTerms: []string{"Item"},
+		},
+		{
+			FieldName:   "PartNumber",
+			SearchTerms: []string{"part number"},
+		},
+		{
+			FieldName:   "ComponentManufacturerPartNumber",
+			SearchTerms: []string{"component manufacturer part number", "component manufacturer part-nr"},
+		},
+		{
+			FieldName:   "PartDescription",
+			SearchTerms: []string{"part description", "component description"},
+		},
+		{
+			FieldName:   "ManufacturerOfComponent",
+			SearchTerms: []string{"manufacturer of the component", "manufacturer of component"},
+		},
+		{
+			FieldName:   "ExportRegulationCountry",
+			SearchTerms: []string{"export regulations country"},
+		},
+		{
+			FieldName:   "DualControlListClfNum",
+			SearchTerms: []string{"Dual Use Item  - Control list classification number"},
+		},
+		{
+			FieldName:   "MilitaryControlListClfNum",
+			SearchTerms: []string{"Military Item - Control list classification number"},
+		},
+		{
+			FieldName:   "IndicateLicenseApplication",
+			SearchTerms: []string{"Indicate License Application Form/Type "},
+		},
+		{
+			FieldName:   "TopLevelDeliverableItem",
+			SearchTerms: []string{"Content of the top level deliverable item"},
+		},
+		{
+			FieldName:   "USML_N",
+			SearchTerms: []string{"usml n°", "usml"},
+		},
+		{
+			FieldName:   "ECCN_N",
+			SearchTerms: []string{"ECCN N°", "ECCN", "EAR 99"},
+		},
+		{
+			FieldName:   "US_EA_CONTENT_RATIO",
+			SearchTerms: []string{"Ratio of US EAR controlled content"},
+		},
+	}
+
+	// Add controlled content extraction
+	_, controlledContentSheetName, err := e.searchSheetName("controlled content")
+	if err != nil {
+		fmt.Println("Error finding controlled content sheet:", err)
+	} else {
+		e.Extraction.ControlledContent = e.extractControlledContent(controlledContentSheetName, columnMappings)
 	}
 
 	jsonBytes, err := json.Marshal(e.Extraction)
