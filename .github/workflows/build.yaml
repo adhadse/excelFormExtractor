@@ -53,6 +53,9 @@ jobs:
         run: go install github.com/go-python/gopy@v0.4.10
       - name: install goimports
         run: go install golang.org/x/tools/cmd/goimports@latest
+      - name: Delete older files (if any)
+        run: |
+          rm -rf ./dist/ ./py_excel_form_extractor ./py_excel_form_extractor.egg-info
       - name: Build Python module
         run: gopy build --output=py_excel_form_extractor -vm=python3 ./pkg/*
       - name: Creating installable .whl file using the setup.py
