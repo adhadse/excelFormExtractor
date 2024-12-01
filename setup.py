@@ -12,6 +12,7 @@ setuptools.setup(
     url="https://github.com/adhadse/excelFormExtractor",
     author="Anurag Dhadse",
     description="Extract excel form content into structured data.",
+    long_description_content_type="text/markdown",
     packages=setuptools.find_packages(include=["py_excel_form_extractor"]),
     license="MIT",
     platforms="Linux, Mac OS X",
