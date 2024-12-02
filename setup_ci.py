@@ -3,9 +3,7 @@ import json
 import os
 import subprocess
 import sys
-subprocess.check_call([sys.executable, "-m", "pip", "install", "loguru"])
 import re
-from loguru import logger
 from distutils.core import Extension
 
 import setuptools
@@ -25,20 +23,17 @@ def normalize(name):  # https://peps.python.org/pep-0503/#normalized-names
 PACKAGE_PATH = "py_excel_form_extractor"
 PACKAGE_NAME = PACKAGE_PATH.split("/")[-1]
 
-try:
-    if sys.platform == "darwin":
-        # PYTHON_BINARY_PATH is setting explicitly for 310 and 311, see build_wheel.yml
-        # on macos PYTHON_BINARY_PATH must be python bin installed from python.org or from brew
-        PYTHON_BINARY = os.getenv("PYTHON_BINARY_PATH", sys.executable)
-        if PYTHON_BINARY == sys.executable:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
-    else:
-        # linux & windows
-        PYTHON_BINARY = sys.executable
+if sys.platform == "darwin":
+    # PYTHON_BINARY_PATH is setting explicitly for 310 and 311, see build_wheel.yml
+    # on macos PYTHON_BINARY_PATH must be python bin installed from python.org or from brew
+    PYTHON_BINARY = os.getenv("PYTHON_BINARY_PATH", sys.executable)
+    if PYTHON_BINARY == sys.executable:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
-except Exception as e:
-    logger.exception(f"Exception {e} occurred")
-    raise e
+else:
+    # linux & windows
+    PYTHON_BINARY = sys.executable
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
+
 
 def _generate_path_with_gopath() -> str:
     go_path = subprocess.check_output(["go", "env", "GOPATH"]).decode("utf-8").strip()
@@ -87,48 +82,44 @@ with open("README.md") as f:
 with open("LICENSE") as f:
     license = f.read()
 
-try:
-    setuptools.setup(
-        name=normalize(PACKAGE_NAME),
-        version=version,
-        url="https://github.com/adhadse/excelFormExtractor",
-        author="Anurag Dhadse",
-        author_email="hello@adhadse.com",
-        description="Extract excel form content into structured data.",
-        long_description=readme,
-        long_description_content_type="text/markdown",
-        license=license,
-        keywords=["go", "golang", "python", "excel", "xlsx", "form", "extractor"],
-        classifiers=[
-            "Programming Language :: Python :: 3",
-            "License :: OSI Approved :: MIT License",
-            # "Operating System :: OS Independent",
-        ],
-        packages=setuptools.find_packages(),
-        cmdclass={
-            "build_ext": CustomBuildExt,
-        },
-        ext_modules=[
-            Extension(
-                name=PACKAGE_NAME,
-                sources=[
-                    # PACKAGE_PATH,
-                    "./pkg/*",
-                ],
-                # include_dirs=["py_excel_form_extractor"],
-            )
-        ],
-        py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
-        package_data={"py_excel_form_extractor": [
-            "*.so",
-            "*_go.py",
-            "*.py",
-            "_*.py",
-            "*.h",
-            "*.c",
-        ]},
-        include_package_data=True,
-    )
-except Exception as e:
-    logger.exception(f"Exception {e} occurred running setuptools")
-    raise e
+setuptools.setup(
+    name=normalize(PACKAGE_NAME),
+    version=version,
+    url="https://github.com/adhadse/excelFormExtractor",
+    author="Anurag Dhadse",
+    author_email="hello@adhadse.com",
+    description="Extract excel form content into structured data.",
+    long_description=readme,
+    long_description_content_type="text/markdown",
+    license=license,
+    keywords=["go", "golang", "python", "excel", "xlsx", "form", "extractor"],
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        # "Operating System :: OS Independent",
+    ],
+    packages=setuptools.find_packages(),
+    cmdclass={
+        "build_ext": CustomBuildExt,
+    },
+    ext_modules=[
+        Extension(
+            name=PACKAGE_NAME,
+            sources=[
+                # PACKAGE_PATH,
+                "./pkg/*",
+            ],
+            # include_dirs=["py_excel_form_extractor"],
+        )
+    ],
+    py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
+    package_data={"py_excel_form_extractor": [
+        "*.so",
+        "*_go.py",
+        "*.py",
+        "_*.py",
+        "*.h",
+        "*.c",
+    ]},
+    include_package_data=True,
+)
