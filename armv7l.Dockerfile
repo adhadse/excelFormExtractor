@@ -10,7 +10,7 @@ RUN mkdir build
 WORKDIR build
 COPY . .
 
-RUN for ver in {3.10,3.11,3.12};  \
+RUN for ver in {3.11,3.12};  \
     do  \
     mkdir -p build${ver} && \
     python${ver} setup.py bdist_wheel --dist-dir build${ver} && \

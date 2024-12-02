@@ -10,87 +10,10 @@ env:
   GO111MODULE: auto
 
 jobs:
-  # build_wheels:
-  #   name: Build wheel for cp${{ matrix.python }}-${{ matrix.platform_id }}-${{ matrix.manylinux_image }}
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       include:
-  #         # Linux 64 bit manylinux2014
-  #         - os: ubuntu-latest
-  #           python: 39
-  #           platform_id: manylinux_x86_64
-  #           manylinux_image: manylinux2014
-
-  #         - os: ubuntu-latest
-  #           python: 310
-  #           platform_id: manylinux_x86_64
-  #           manylinux_image: manylinux2014
-
-  #         - os: ubuntu-latest
-  #           python: 311
-  #           platform_id: manylinux_x86_64
-  #           manylinux_image: manylinux2014
-  #         - os: ubuntu-latest
-  #           python: 312
-  #           platform_id: manylinux_x86_64
-  #           manylinux_image: manylinux2014
-  #         - os: ubuntu-latest
-  #           python: 313
-  #           platform_id: manylinux_x86_64
-  #           manylinux_image: manylinux2014
-  # steps:
-  #   - uses: actions/checkout@v4
-
-  #   - name: Set up Python
-  #     uses: actions/setup-python@v4
-  #     with:
-  #       python-version: "3.11"
-
-  #   - name: Set tag name as environment variable
-  #     run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-  #   - name: Install cibuildwheel
-  #     run: python -m pip install cibuildwheel==2.16.2
-
-  #   - name: Build wheels
-  #     env:
-  #       CIBW_BUILD: cp${{ matrix.python }}*
-  #       CIBW_ARCHS: "auto64"
-  #       CIBW_SKIP: "*-musllinux*" # Skip musllinux builds
-  #       CIBW_BEFORE_ALL: |
-  #         curl -OL https://go.dev/dl/go1.22.0.linux-amd64.tar.gz
-  #         rm -rf /usr/local/go
-  #         tar -C /usr/local -xzf go1.22.0.linux-amd64.tar.gz
-  #         export PATH=$PATH:/usr/local/go/bin
-  #         go version
-  #       CIBW_BEFORE_BUILD: |
-  #         export PATH=$PATH:/usr/local/go/bin
-  #         export GOPATH=/root/go
-  #         export PATH=$PATH:$GOPATH/bin
-  #         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
-  #         go install github.com/go-python/gopy@v0.4.10
-  #         go install golang.org/x/tools/cmd/goimports@latest
-  #         go mod download
-  #         go mod verify
-  #         rm -rf ./py_excel_form_extractor ./py_excel_form_extractor.egg-info
-  #         gopy build --output=py_excel_form_extractor -vm=python3 ./pkg/*
-  #       CIBW_ENVIRONMENT: >
-  #         PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
-  #         GOPATH=/root/go
-  #       PACKAGE_VERSION: ${{ env.RELEASE_VERSION }}
-  #       CIBW_BUILD_VERBOSITY: 3 # Add verbose output
-  #     run: python -m cibuildwheel --output-dir wheelhouse
-
-  #   - uses: actions/upload-artifact@v4
-  #     with:
-  #       path: ./wheelhouse/*.whl
-  #       overwrite: true
   build_linux_x86_64:
     # if: false
     name: Linux 310,311 x86_64
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +37,6 @@ jobs:
             tar -C /usr/local -xzf go.tar.gz
             go install github.com/go-python/gopy@v0.4.10
             go install golang.org/x/tools/cmd/goimports@v0.16.0
-          # RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
           CIBW_BUILD_VERBOSITY: 3 # Add verbose output
 
       - name: Upload atifacts
@@ -123,9 +45,10 @@ jobs:
           name: wheels-linux-amd64
           path: ./wheelhouse/*.whl
 
+  # TODO: fails. is disabled using `if:false`
   build_linux_arm:
-    # if: false
-    name: Linux 310,311 armv7l
+    if: false
+    name: Linux 311,312 armv7l
     runs-on: ubuntu-latest
 
     steps:
