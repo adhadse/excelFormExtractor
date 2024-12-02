@@ -40,7 +40,7 @@ go build -o ./bin/excel-extrator ./cmd/excelFormExtractor/main.go
 ```bash
 pip3 install pybindgen wheel
 gopy build --output=py_excel_form_extractor -vm=python3 ./pkg/*
-PACKAGE_VERSION=YOUR_UPDATED_PACKAGE_VERSION python3 setup.py bdist_wheel --force
+RELEASE_VERSION=YOUR_UPDATED_PACKAGE_VERSION python3 setup.py bdist_wheel --force
 
 # install wheel file
 wheel_file=$(ls dist/*.whl | head -n1); pip3 install $wheel_file

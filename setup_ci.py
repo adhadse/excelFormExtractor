@@ -4,15 +4,17 @@ import os
 import subprocess
 import sys
 import re
+from loguru import logger
 from distutils.core import Extension
 
 import setuptools
 from setuptools.command.build_ext import build_ext
 
-version = os.environ.get('PACKAGE_VERSION', None)
+version = os.environ.get('RELEASE_VERSION', None)
 if version is None:
-    raise ValueError(f"version {version} is None. ENV var PACKAGE_VERSION: {os.environ.get('PACKAGE_VERSION')}")
+    raise ValueError(f"version {version} is None. ENV var RELEASE_VERSION: {os.environ.get('RELEASE_VERSION')}")
 version = version.lstrip('v')
+print(f"verion: {version}")
 
 
 def normalize(name):  # https://peps.python.org/pep-0503/#normalized-names
@@ -47,10 +49,11 @@ class CustomBuildExt(build_ext):
             subprocess.check_output(["go", "env", "-json"]).decode("utf-8").strip()
         )
 
-        destination = (
-            os.path.dirname(os.path.abspath(self.get_ext_fullpath(ext.name)))
-            + f"/{PACKAGE_NAME}"
-        )
+        # destination = (
+        #     os.path.dirname(os.path.abspath(self.get_ext_fullpath(ext.name)))
+        #     + f"/{PACKAGE_NAME}"
+        # )
+        destination = PACKAGE_NAME
 
         subprocess.check_call(
             [
@@ -69,7 +72,8 @@ class CustomBuildExt(build_ext):
         )
 
         # dirty hack to avoid "from pkg import pkg", remove if needed
-        with open(f"{destination}/__init__.py", "w") as f:
+        # with open(f"{destination}/__init__.py", "w") as f:
+        with open(f"{PACKAGE_NAME}/__init__.py", "w") as f:
             f.write(f"from .{PACKAGE_NAME} import *")
 
 
@@ -79,30 +83,48 @@ with open("README.md") as f:
 with open("LICENSE") as f:
     license = f.read()
 
-setuptools.setup(
-    name=normalize(PACKAGE_NAME),
-    version=version,
-    url="https://github.com/adhadse/excelFormExtractor",
-    author="Anurag Dhadse",
-    author_email="hello@adhadse.com",
-    description="Extract excel form content into structured data.",
-    long_description=readme,
-    long_description_content_type="text/markdown",
-    license=license,
-    keywords=["go", "golang", "python", "excel", "xlsx", "form", "extractor"],
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        # "Operating System :: OS Independent",
-    ],
-    cmdclass={
-        "build_ext": CustomBuildExt,
-    },
-    ext_modules=[
-        Extension(
-            PACKAGE_NAME,
-            [PACKAGE_PATH],
-        )
-    ],
-    include_package_data=True,
-)
+try:
+    setuptools.setup(
+        name=normalize(PACKAGE_NAME),
+        version=version,
+        url="https://github.com/adhadse/excelFormExtractor",
+        author="Anurag Dhadse",
+        author_email="hello@adhadse.com",
+        description="Extract excel form content into structured data.",
+        long_description=readme,
+        long_description_content_type="text/markdown",
+        license=license,
+        keywords=["go", "golang", "python", "excel", "xlsx", "form", "extractor"],
+        classifiers=[
+            "Programming Language :: Python :: 3",
+            "License :: OSI Approved :: MIT License",
+            # "Operating System :: OS Independent",
+        ],
+        packages=setuptools.find_packages(),
+        cmdclass={
+            "build_ext": CustomBuildExt,
+        },
+        ext_modules=[
+            Extension(
+                name=PACKAGE_NAME,
+                sources=[
+                    # PACKAGE_PATH,
+                    "./pkg/*",
+                ],
+                # include_dirs=["py_excel_form_extractor"],
+            )
+        ],
+        py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
+        package_data={"py_excel_form_extractor": [
+            "*.so",
+            "*_go.py",
+            "*.py",
+            "_*.py",
+            "*.h",
+            "*.c",
+        ]},
+        include_package_data=True,
+    )
+except Exception as e:
+    logger.exception(f"Exception {e} occurred")
+    raise e

@@ -2,10 +2,11 @@ import setuptools
 from setuptools import Extension
 import os
 
-version = os.environ.get('PACKAGE_VERSION', None)
+version = os.environ.get('RELEASE_VERSION', None)
 if version is None:
-    raise ValueError(f"version {version} is None. ENV var PACKAGE_VERSION: {os.environ.get('PACKAGE_VERSION')}")
+    raise ValueError(f"version {version} is None. ENV var RELEASE_VERSION: {os.environ.get('RELEASE_VERSION')}")
 version = version.lstrip('v')
+print(f"verion: {version}")
 
 setuptools.setup(
     name="py_excel_form_extractor",
