@@ -1,6 +1,6 @@
 module github.com/adhadse/excelFormExtractor
 
-go 1.22.9
+go 1.22
 
 require (
 	github.com/go-python/gopy v0.4.10
