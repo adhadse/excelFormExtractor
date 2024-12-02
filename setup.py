@@ -1,4 +1,5 @@
 import setuptools
+from setuptools import Extension
 import os
 
 version = os.environ.get('PACKAGE_VERSION', None)
@@ -15,8 +16,15 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(include=["py_excel_form_extractor"]),
     license="MIT",
-    platforms="Linux, Mac OS X",
+    platforms="Linux",
     keywords=["go", "golang", "python", "excel", "xlsx", "form", "extractor"],
+    ext_modules=[
+        Extension(
+            "py_excel_form_extractor._extractor",
+            sources=["py_excel_form_extractor/extractor.c"],
+            include_dirs=["py_excel_form_extractor"],
+        )
+    ],
     py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
     package_data={"py_excel_form_extractor": [
         "*.so",
