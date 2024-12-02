@@ -48,11 +48,11 @@ class CustomBuildExt(build_ext):
             subprocess.check_output(["go", "env", "-json"]).decode("utf-8").strip()
         )
 
-        # destination = (
-        #     os.path.dirname(os.path.abspath(self.get_ext_fullpath(ext.name)))
-        #     + f"/{PACKAGE_NAME}"
-        # )
-        destination = PACKAGE_NAME
+        destination = (
+            os.path.dirname(os.path.abspath(self.get_ext_fullpath(ext.name)))
+            + f"/{PACKAGE_NAME}"
+        )
+        # destination = PACKAGE_NAME
 
         subprocess.check_call(
             [
@@ -71,8 +71,8 @@ class CustomBuildExt(build_ext):
         )
 
         # dirty hack to avoid "from pkg import pkg", remove if needed
-        # with open(f"{destination}/__init__.py", "w") as f:
-        with open(f"{PACKAGE_NAME}/__init__.py", "w") as f:
+        os.makedirs(destination, exist_ok=True)
+        with open(f"{destination}/__init__.py", "w") as f:
             f.write(f"from .{PACKAGE_NAME} import *")
 
 
@@ -107,12 +107,13 @@ setuptools.setup(
             name=PACKAGE_NAME,
             sources=[
                 # PACKAGE_PATH,
-                "./pkg/*",
+                "./pkg/extractor",
+                "./pkg/utils",
             ],
             # include_dirs=["py_excel_form_extractor"],
         )
     ],
-    py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
+    # py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
     package_data={"py_excel_form_extractor": [
         "*.so",
         "*_go.py",

@@ -26,3 +26,4 @@ go.work.sum
 py_excel_form_extractor
 *.egg-info
 dist
+build
