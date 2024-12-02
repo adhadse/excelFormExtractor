@@ -18,6 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+
       - name: copy setup.py
         run: cp setup_ci.py setup.py
 
