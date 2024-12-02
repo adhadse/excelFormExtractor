@@ -15,8 +15,8 @@ RUN for ver in {3.10,3.11,3.12};  \
     mkdir -p build${ver} && \
     cd build${ver} && \
     pip${ver} setup.py bdist_wheel --dist-dir build${ver} && \
-    auditwheel repair build${ver}/*armv7l.whl --wheel-dir build${ver}/wheelhouse ; \
-    ls build${ver} \
+    auditwheel repair build${ver}/*armv7l.whl --wheel-dir build${ver}/wheelhouse && \
+    ls build${ver} ;\
     done
 
 RUN mkdir -p /export && \
