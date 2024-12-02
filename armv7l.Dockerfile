@@ -14,9 +14,8 @@ RUN for ver in {3.10,3.11,3.12};  \
     do  \
     mkdir -p build${ver} && \
     cd build${ver} && \
-    pip${ver} wheel .. && \
-    auditwheel repair *armv7l.whl && \
-    cd ../ ; \
+    pip${ver} wheel . --wheel-dir build${ver} && \
+    auditwheel repair build${ver}/*armv7l.whl --wheel-dir build${ver}/wheelhouse ; \
     done
 
 RUN mkdir -p /export && \
