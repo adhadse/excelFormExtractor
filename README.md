@@ -9,7 +9,7 @@ Extract excel form content into structured data.
 from py_excel_form_extractor import extractor, go
 
 company_names = extractor.CompanyNameList()  # the company name which can be mentioned in the file
-for company_name in ["Boeing", "Boeing Ltd"]:
+for company_name in ["Amazon", "Amazon Ltd"]:
     company_names.append(company_name)
 
 extr = extractor.make_seccf_extractor("Example.xlsx", company_names)
