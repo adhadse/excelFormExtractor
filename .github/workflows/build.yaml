@@ -12,7 +12,7 @@ env:
 jobs:
   build_linux_x86_64:
     # if: false
-    name: Linux 310,311 x86_64
+    name: Linux 311,312 x86_64
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +27,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
         env:
-          CIBW_BUILD: "cp3*_x86_64"
+          CIBW_BUILD: "cp311*_x86_64 cp312*_x86_64"
           CIBW_SKIP: "cp36-* cp37-* cp38-* cp39-* *-musllinux_x86_64"
           CIBW_ARCHS: "native"
           CIBW_ENVIRONMENT: "PATH=$PATH:/usr/local/go/bin RELEASE_VERSION=${RELEASE_VERSION}"
@@ -37,7 +37,7 @@ jobs:
             tar -C /usr/local -xzf go.tar.gz
             go install github.com/go-python/gopy@v0.4.10
             go install golang.org/x/tools/cmd/goimports@v0.16.0
-          CIBW_BUILD_VERBOSITY: 3 # Add verbose output
+          # CIBW_BUILD_VERBOSITY: 3 # Add verbose output
 
       - name: Upload atifacts
         uses: actions/upload-artifact@v4
@@ -46,6 +46,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   # TODO: fails. is disabled using `if:false`
+  # we can probably just use cibuildwheel and update the CIBW_ARCHS, CIBW_BUILD
   build_linux_arm:
     if: false
     name: Linux 311,312 armv7l
