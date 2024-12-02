@@ -73,7 +73,7 @@ class CustomBuildExt(build_ext):
         # dirty hack to avoid "from pkg import pkg", remove if needed
         os.makedirs(destination, exist_ok=True)
         with open(f"{destination}/__init__.py", "w") as f:
-            f.write(f"from .{PACKAGE_NAME} import *")
+            f.write("from . import *")
 
 
 with open("README.md") as f:
