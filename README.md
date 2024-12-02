@@ -12,11 +12,11 @@ company_names = extractor.CompanyNameList()  # the company name which can be men
 for company_name in ["Boeing", "Boeing Ltd"]:
     company_names.append(company_name)
 
-extr = extractor.MakeSECCFExtractor("Example.xlsx", company_names)
-extraction = extr.Extract()
+extr = extractor.make_seccf_extractor("Example.xlsx", company_names)
+extraction = extr.extract()
 
 # convert to JSON string
-extr_json = extr.ToJson()
+extr_json = extr.to_json()
 ```
 
 ## BUILD
