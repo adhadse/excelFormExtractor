@@ -1,7 +1,7 @@
 FROM ghcr.io/bjia56/armv7l-wheel-builder:main@sha256:7664c40814ba3d9d546d61b4cab16608b86d978f21204a1e59e2efdf1437e8fd
 
 RUN go install github.com/go-python/gopy@v0.4.10 && \
-    go install golang.org/x/tools/cmd/goimports@latest
+    go install golang.org/x/tools/cmd/goimports@v0.16.0
 
 RUN mkdir build
 WORKDIR build
