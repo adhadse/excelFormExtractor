@@ -1,7 +1,6 @@
 [project]
 name = "py-excel-form-extractor"
-dynamic = ["version", "keywords"]  # Mark both version and keywords as dynamic
-version = "0.0.0"  # This will be overridden by setup.py
+dynamic = ["version", "keywords"]
 description = "Extract excel form content into structured data"
 authors = [
     {name = "Anurag Dhadse", email = "hello@adhadse.com"}
