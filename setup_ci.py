@@ -115,6 +115,7 @@ setuptools.setup(
         )
     ],
     # py_modules = ["py_excel_form_extractor.extractor", "py_excel_form_extractor.utils"],
+    setup_requires=['pybindgen'],
     package_data={"py_excel_form_extractor": [
         "*.so",
         "*_go.py",
