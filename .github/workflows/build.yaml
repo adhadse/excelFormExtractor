@@ -34,6 +34,8 @@ jobs:
           CIBW_ARCHS: "native"
           CIBW_ENVIRONMENT: "PATH=$PATH:/usr/local/go/bin RELEASE_VERSION=${RELEASE_VERSION}"
           CIBW_ENVIRONMENT_PASS_LINUX: "RELEASE_VERSION"
+          CIBW_BEFORE_BUILD: |
+            pip install pybindgen
           CIBW_BEFORE_ALL_LINUX: |
             curl -o go.tar.gz https://dl.google.com/go/go1.22.9.linux-amd64.tar.gz
             tar -C /usr/local -xzf go.tar.gz
