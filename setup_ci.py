@@ -10,11 +10,13 @@ import setuptools
 from setuptools.command.build_ext import build_ext
 
 print("Python path before:", sys.path)
+import ensurepip
+ensurepip.bootstrap()
+
 subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
 print("Python path after:", sys.path)
 
-import ensurepip
-ensurepip.bootstrap()
+
 
 version = os.environ.get('RELEASE_VERSION', None)
 if version is None:
