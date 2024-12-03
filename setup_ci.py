@@ -9,14 +9,6 @@ from distutils.core import Extension
 import setuptools
 from setuptools.command.build_ext import build_ext
 
-print("Python path before:", sys.path)
-import ensurepip
-ensurepip.bootstrap()
-
-subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
-print("Python path after:", sys.path)
-
-
 
 version = os.environ.get('RELEASE_VERSION', None)
 if version is None:
@@ -36,12 +28,12 @@ if sys.platform == "darwin":
     # PYTHON_BINARY_PATH is setting explicitly for 310 and 311, see build_wheel.yml
     # on macos PYTHON_BINARY_PATH must be python bin installed from python.org or from brew
     PYTHON_BINARY = os.getenv("PYTHON_BINARY_PATH", sys.executable)
-    if PYTHON_BINARY == sys.executable:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
+    # if PYTHON_BINARY == sys.executable:
+    #     subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
 else:
     # linux & windows
     PYTHON_BINARY = sys.executable
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
+    # subprocess.check_call([sys.executable, "-m", "pip", "install", "pybindgen"])
 
 
 def _generate_path_with_gopath() -> str:
