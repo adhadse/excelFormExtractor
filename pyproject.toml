@@ -1,5 +1,6 @@
 [project]
 name = "py-excel-form-extractor"
+dynamic = ["version", "keywords"]  # Mark both version and keywords as dynamic
 version = "0.0.0"  # This will be overridden by setup.py
 description = "Extract excel form content into structured data"
 authors = [
@@ -23,6 +24,3 @@ requires = [
 ]
 
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["py_excel_form_extractor"]
