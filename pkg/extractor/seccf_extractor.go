@@ -20,6 +20,8 @@ type SearchCriteria struct {
 	TriColumnClfCriteria  TriClassificationCritera   // Add this to map checkbox text to values
 	BoolCheckBox          bool
 	BoolClfCriteria       BoolClassificationCriteria
+	BoolContainsImage     bool
+	BoolClfContainsImage  BoolClassificationCriteria
 	Offset                int // Default offset of value for simple fields
 }
 
@@ -107,7 +109,7 @@ type ProductDetails struct {
 	// Supplier Representative
 	RepresentativeName      string `json:"representative_name"`
 	RepresentativePosition  string `json:"representative_position"`
-	RepresentativeSignature string `json:"representative_signature"` // Available/Not Available
+	RepresentativeSignature bool   `json:"representative_signature"` // Available/Not Available
 	SupplierCompanySeal     string `json:"supplier_company_seal"`    // Available/Not Available
 	SignatureDate           string `json:"signature_date"`           // Date format
 }
@@ -170,6 +172,7 @@ type SimpleValueExtractor struct{}
 type BoolCheckBoxExtractor struct{}
 type DualColumnClfExtractor struct{}
 type TriColumnClfExtractor struct{}
+type BoolContainsImageExtractor struct{}
 
 func (s *SimpleValueExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
 	adjacentRange := getAdjacentRange(cellRange, criteria.Offset)
@@ -179,6 +182,11 @@ func (s *SimpleValueExtractor) Extract(e *ExcelExtractor, sheetName string, crit
 func (c *BoolCheckBoxExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
 	cell := getAdjacentRange(cellRange, criteria.BoolClfCriteria.Offset).StartCell
 	return e.isCheckBoxChecked(sheetName, cell, criteria.BoolClfCriteria.SearchTerms)
+}
+
+func (c *BoolContainsImageExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
+	cell := getAdjacentRange(cellRange, criteria.BoolClfContainsImage.Offset).StartCell
+	return e.doesContainImage(sheetName, cell)
 }
 
 func (d *DualColumnClfExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
@@ -495,6 +503,8 @@ func (e *ExcelExtractor) extractDetails(details interface{}, sheetName string, c
 						extractor = &TriColumnClfExtractor{}
 					} else if searchCriteria.BoolCheckBox {
 						extractor = &BoolCheckBoxExtractor{}
+					} else if searchCriteria.BoolContainsImage {
+						extractor = &BoolContainsImageExtractor{}
 					} else {
 						extractor = &SimpleValueExtractor{}
 					}
@@ -561,6 +571,19 @@ func (e *ExcelExtractor) isCheckBoxChecked(sheetName string, cell string, classi
 		}
 	}
 	return false, nil
+}
+
+func (e *ExcelExtractor) doesContainImage(sheetName string, cell string) (bool, error) {
+	images, err := e.file.GetPictures(sheetName, cell)
+	// fmt.Printf("images: %v cell %s\n", images, cell)
+	if err != nil {
+		return false, fmt.Errorf("failed to get form controls: %w", err)
+	}
+
+	if len(images) == 0 {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (e *ExcelExtractor) Extract() SECCFExtraction {
@@ -936,7 +959,12 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 				{StartCell: "B51", EndCell: "D51"},
 				{StartCell: "B52", EndCell: "D52"},
 			},
-			Offset: 3,
+			Offset:            3,
+			BoolContainsImage: true,
+			BoolClfContainsImage: BoolClassificationCriteria{
+				Offset:      3,
+				SearchTerms: []string{},
+			},
 		},
 		"SupplierCompanySeal": {
 			SearchTerms: []string{"SUPPLIER COMPANY SEAL", "company name"},
@@ -1035,6 +1063,7 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 		return *e.Extraction
 	}
 	fmt.Printf("Extraction with: %s \n", string(jsonBytes))
+
 	return *e.Extraction
 }
 
