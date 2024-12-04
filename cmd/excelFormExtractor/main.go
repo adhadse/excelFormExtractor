@@ -60,24 +60,12 @@ func main() {
 
 		input := os.Args[2]
 
-		seccf_extr, err := extractor.MakeSECCFExtractor(input, []string{"Leonardo", "Leonardo UK Ltd", "Leonardo MW Ltd"})
+		seccf_extr, err := extractor.MakeSECCFExtractor(input, []string{"Amazon", "Amazon Inc", "Aamazon Ltd"})
 		if err != nil {
 			fmt.Printf("Failed to initialize extractor: %v\n", err)
 			return
 		}
 		defer seccf_extr.Close()
-
-		// // get merged cell value
-		// val, err := seccf_extr.GetMergedCellValue(extractor.CellRange{
-		// 	StartCell: "E19",
-		// 	EndCell:   "E19",
-		// }, "Section A - LMW Buyer details")
-
-		// if err != nil {
-		// 	fmt.Printf("Failed to retrieve cell value: %v\n", err)
-		// } else {
-		// 	fmt.Printf("MergedCellValue: %s\n", val)
-		// }
 
 		seccf_extr.Extract()
 		// seccf_extr.ReadFormControls()

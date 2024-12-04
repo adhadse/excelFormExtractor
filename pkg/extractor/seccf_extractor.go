@@ -107,7 +107,6 @@ type ProductDetails struct {
 	// Supplier Representative
 	RepresentativeName      string `json:"representative_name"`
 	RepresentativePosition  string `json:"representative_position"`
-	RepresentativeCompany   string `json:"representative_company"`
 	RepresentativeSignature string `json:"representative_signature"` // Available/Not Available
 	SupplierCompanySeal     string `json:"supplier_company_seal"`    // Available/Not Available
 	SignatureDate           string `json:"signature_date"`           // Date format
@@ -185,6 +184,7 @@ func (c *BoolCheckBoxExtractor) Extract(e *ExcelExtractor, sheetName string, cri
 func (d *DualColumnClfExtractor) Extract(e *ExcelExtractor, sheetName string, criteria SearchCriteria, cellRange CellRange) (interface{}, error) {
 	cellType1 := getAdjacentRange(cellRange, criteria.DualColumnClfCriteria.TYPE_1.Offset).StartCell
 	cellType2 := getAdjacentRange(cellRange, criteria.DualColumnClfCriteria.TYPE_2.Offset).StartCell
+	// fmt.Println("cellType1", cellType1, " cellType2", cellType2)
 
 	isType1, err := e.isCheckBoxChecked(sheetName, cellType1, criteria.DualColumnClfCriteria.TYPE_1.SearchTerms)
 	if err != nil {
@@ -835,7 +835,7 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 				TYPE_1: ClassificationCriteria{
 					Label:       "YES",
 					SearchTerms: []string{"YES"},
-					Offset:      3,
+					Offset:      4,
 				},
 				TYPE_2: ClassificationCriteria{
 					Label:       "NO",
@@ -854,11 +854,11 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 				TYPE_1: ClassificationCriteria{
 					Label:       "YES",
 					SearchTerms: []string{"YES"},
-					Offset:      3,
+					Offset:      4,
 				},
 				TYPE_2: ClassificationCriteria{
 					Label:       "NO",
-					SearchTerms: []string{"No"},
+					SearchTerms: []string{"NO"},
 					Offset:      4,
 				},
 			},
@@ -873,17 +873,17 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 				TYPE_1: ClassificationCriteria{
 					Label:       "YES",
 					SearchTerms: []string{"YES"},
-					Offset:      3,
+					Offset:      4,
 				},
 				TYPE_2: ClassificationCriteria{
 					Label:       "NO",
 					SearchTerms: []string{"NO"},
-					Offset:      3,
+					Offset:      4,
 				},
 				TYPE_3: ClassificationCriteria{
 					Label:       "END USER NOT ADVISED TO SUPPLIER",
 					SearchTerms: []string{"END USER NOT ADVISED TO SUPPLIER"},
-					Offset:      5,
+					Offset:      4,
 				},
 			},
 		},
@@ -897,7 +897,7 @@ func (e *ExcelExtractor) Extract() SECCFExtraction {
 				TYPE_1: ClassificationCriteria{
 					Label:       "YES",
 					SearchTerms: []string{"YES"},
-					Offset:      3,
+					Offset:      4,
 				},
 				TYPE_2: ClassificationCriteria{
 					Label:       "NO",
