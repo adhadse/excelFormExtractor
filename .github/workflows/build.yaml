@@ -50,7 +50,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   build_linux_arm:
-    name: Linux 311,312 musllinux_armv7l
+    name: Linux 311,312 aarch64
     runs-on: ubuntu-latest
 
     steps:
@@ -72,9 +72,9 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
         env:
-          CIBW_BUILD: "cp311-manylinux_armv7l cp312-manylinux_s390x"
+          CIBW_BUILD: "cp311-manylinux_aarch64 cp312-manylinux_aarch64"
           CIBW_SKIP: "cp36-* cp37-* cp38-* cp39-*"
-          CIBW_ARCHS: "arm64"
+          CIBW_ARCHS: "aarch64"
           CIBW_ENVIRONMENT: "PATH=$PATH:/usr/local/go/bin RELEASE_VERSION=${RELEASE_VERSION}"
           CIBW_ENVIRONMENT_PASS_LINUX: "RELEASE_VERSION"
           CIBW_BEFORE_BUILD: |
