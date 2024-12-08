@@ -43,19 +43,23 @@ jobs:
             go install golang.org/x/tools/cmd/goimports@v0.16.0
           # CIBW_BUILD_VERBOSITY: 3 # Add verbose output
 
-      - name: Upload atifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wheels-linux-amd64
           path: ./wheelhouse/*.whl
 
   build_linux_arm:
-    # if: false
-    name: Linux 311,312 x86_64
+    name: Linux 311,312 musllinux_armv7l
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
 
       - uses: actions/setup-python@v5
 
@@ -82,10 +86,10 @@ jobs:
             go install golang.org/x/tools/cmd/goimports@v0.16.0
           # CIBW_BUILD_VERBOSITY: 3 # Add verbose output
 
-      - name: Upload atifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-linux-amd64
+          name: wheels-linux-arm
           path: ./wheelhouse/*.whl
 
   # TODO: fails. is disabled using `if:false`
